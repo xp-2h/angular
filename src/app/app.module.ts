@@ -3,7 +3,7 @@ import { NgModule, LOCALE_ID, APP_INITIALIZER, Injector } from '@angular/core';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-
+import { environment } from '../environments/environment';
 // #region default language
 // Reference: https://ng-alain.com/docs/i18n
 import { default as ngLang } from '@angular/common/locales/zh';
@@ -69,7 +69,7 @@ export function StartupConfigFactory() {
       config[key] = window['_myConfig'][key];
     }
   }
-  console.log(config);
+  environment.SERVER_URL = config.api;
   return config;
 }
 const APPINIT_CONFIG = {

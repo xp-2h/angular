@@ -1,80 +1,57 @@
-<p align="center">
-  <a href="https://ng-alain.com">
-    <img width="100" src="https://ng-alain.com/assets/img/logo-color.svg">
-  </a>
-</p>
+# 如何不需重新构建，使用环境变量来配置 Angular 应用
+当一个项目需要发布到生产环境、开发环境和测试环境，之前只能通过修改或者添加多个接口配置，然后逐个编译。项目大了后编译一次就需要十来分钟，那样太痛苦了，于是去搜了下怎么在项目编译后修改相关配置的解决方案。
 
-<h1 align="center">NG-ALAIN</h1>
+### 演示项目直接拿了alain来用
+官网地址：https://ng-alain.com
 
-<div align="center">
-  Out-of-box UI solution for enterprise applications, Let developers focus on business.
+### 外网大佬Jurgen Van de Moere的演示项目，我根据需求精简了
+https://github.com/jvandemo/angular-environment-variables-demo
 
-  [![Build Status](https://img.shields.io/travis/ng-alain/ng-alain/master.svg?style=flat-square)](https://travis-ci.org/ng-alain/ng-alain)
-  [![Dependency Status](https://david-dm.org/ng-alain/ng-alain/status.svg?style=flat-square)](https://david-dm.org/ng-alain/ng-alain)
-  [![GitHub Release Date](https://img.shields.io/github/release-date/ng-alain/ng-alain.svg?style=flat-square)](https://github.com/ng-alain/ng-alain/releases)
-  [![NPM version](https://img.shields.io/npm/v/ng-alain.svg?style=flat-square)](https://www.npmjs.com/package/ng-alain)
-  [![prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://prettier.io/)
-  [![GitHub license](https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square)](https://github.com/ng-alain/ng-alain/blob/master/LICENSE)
-  [![Gitter](https://img.shields.io/gitter/room/ng-alain/ng-alain.svg?style=flat-square)](https://gitter.im/ng-alain/ng-alain)
-  [![ng-zorro-vscode](https://img.shields.io/badge/ng--zorro-VSCODE-brightgreen.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=cipchk.ng-zorro-vscode)
-  [![ng-alain-vscode](https://img.shields.io/badge/ng--alain-VSCODE-brightgreen.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=cipchk.ng-alain-vscode)
+### 中文版原理解析，翻译的就是Jurgen Van de Moere的文章，里面有原文链接，这里就不贴了
+http://www.ngbeijing.cn/2019/03/06/2019-3-6-how-to-use-environment-variables-to-configure-your-angular-application-without-a-rebuild/
 
-</div>
+### 操作步骤
+- 第一步：新建一个配置文件.js，本文是将数据保存到window对象中。（不要让配置文件加入编译，可以直接把文件建在assets中，但是这样项目结构就有点混乱。所以示例中建在src下，然后在angular.json的assets里加上就可以不参与打包编译了。）
+```javascript
+(function(window){
+    //第一步:将配置保存到window中
+    window._myConfig = {
+        api:'http://192.168.0.65:4200',
+        title:'标题一'
+    };
+}(this))
+```
+![avatar](src/assets/config.png)
 
-English | [简体中文](README-zh_CN.md)
+- 第二步：在index.html的head引入该脚本，确保配置脚本在Angular之前加载。
+```javascript
+<script src="./config.js"></script>
+```
 
-## Quickstart
-
-- [Getting Started](https://ng-alain.com/docs/getting-started)
-
-## Links
-
-+ [Document](https://ng-alain.com)
-+ [DEMO](https://ng-alain.github.io/ng-alain/)
-
-## Features
-
-+ `ng-zorro-antd` based
-+ Responsive Layout
-+ I18n
-+ [@delon](https://github.com/ng-alain/delon)
-+ Lazy load Assets
-+ UI Router States
-+ Customize Theme
-+ Less preprocessor
-+ Well organized & commented code
-+ Simple upgrade
-+ Support Docker deploy
-
-## Architecture
-
-![Architecture](https://raw.githubusercontent.com/ng-alain/delon/master/_screenshot/architecture.png)
-
-> [delon](https://github.com/ng-alain/delon) is a production-ready solution for admin business components packages, Built on the design principles developed by Ant Design.
-
-## App Shots
-
-![desktop](https://raw.githubusercontent.com/ng-alain/delon/master/_screenshot/desktop.png)
-![ipad](https://raw.githubusercontent.com/ng-alain/delon/master/_screenshot/ipad.png)
-![iphone](https://raw.githubusercontent.com/ng-alain/delon/master/_screenshot/iphone.png)
-
-## Donation
-
-ng-alain is an MIT-licensed open source project. In order to achieve better and sustainable development of the project, we expect to gain more backers. You can support us in any of the following ways:
-
-- [patreon](https://www.patreon.com/cipchk)
-- [opencollective](https://opencollective.com/ng-alain)
-- [paypal](https://www.paypal.me/cipchk)
-- [支付宝或微信](https://ng-alain.com/assets/donate.png)
-
-Or purchasing our [business theme](https://e.ng-alain.com/).
-
-## Backers
-
-Thank you to all our backers! 🙏
-
-<a href="https://opencollective.com/ng-alain#backers" target="_blank"><img src="https://opencollective.com/ng-alain/backers.svg?width=890"></a>
-
-### License
-
-The MIT License (see the [LICENSE](https://github.com/ng-alain/ng-alain/blob/master/LICENSE) file for the full text)
+- 第三步：
+通过工厂函数在app.module注入初始化操作，因为代码较少，所以直接写在app.module里了。
+```javascript
+//#region Startup config
+import { ConfigService } from './config.service';
+export function StartupConfigFactory() {
+   //用服务去接收window里存储配置，方便项目使用
+  const config = new ConfigService();
+  const browserWindow = window || {};
+  const browserWindowEnv = browserWindow['_myConfig'] || {};
+  for (const key in browserWindowEnv) {
+    if (browserWindowEnv.hasOwnProperty(key)) {
+      config[key] = window['_myConfig'][key];
+    }
+  }
+  environment.SERVER_URL = config.api;
+  return config;
+}
+//将APPINIT_CONFIG添加到providers里，这样Angular初始化的时候就会执行上面的代码
+const APPINIT_CONFIG = {
+  provide: ConfigService,
+  useFactory: StartupConfigFactory,
+  deps: []
+};
+//#endregion
+```
+![avatar](src/assets/appconfig.png)
